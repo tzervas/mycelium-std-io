@@ -12,8 +12,8 @@ publish = false
 workspace = true
 
 [dependencies]
-mycelium-core = { git = "https://github.com/tzervas/mycelium-core", rev = "781d3fcceba82acfe6b0eb46650513bd78a2416b" }
-mycelium-std-core = { git = "https://github.com/tzervas/mycelium-std-core", rev = "580b64316774e22f0b7d5d495ca1d9b9d6536a60" }
+mycelium-core = { git = "https://github.com/tzervas/mycelium-core", rev = "46d2515cbd86d2ae4d1365f4adcd2796737e9f0b" }
+mycelium-std-core = { git = "https://github.com/tzervas/mycelium-std-core", rev = "376762cc17853e1582684ececf9e760426bcfb0c" }
 serde.workspace = true
 serde_json.workspace = true
 
