@@ -5,4 +5,5 @@
 //! integration-level `mod tests` in `lib.rs`, so this module is named `unit_tests` to avoid a
 //! name collision).
 
+mod codec;
 mod serialize;

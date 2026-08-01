@@ -10,6 +10,14 @@
 //!   projection** that `fmt.to_json` (M-533) delegates to (README §5 seam; FLAGGED
 //!   §7-Q1 pending maintainer sign-off).
 //!
+//! **codec** — pure general JSON + TOML for **user-defined types** (S-CODECS / WP-5):
+//! - [`codec::encode_json`] / [`codec::decode_json`] + [`codec::Encode`] / [`codec::Decode`]
+//!   for any `serde` type (ports: GitHub/Telegram JSON shapes).
+//! - [`codec::value_to_json`] / [`codec::json_to_value`] — S-CODECS aliases of the
+//!   Value JSON path above.
+//! - [`codec::parse_toml`] / [`codec::toml_get`] (+ typed `decode_toml`/`encode_toml`)
+//!   for config (`relay.toml`). Effects: **none**; no `wild`.
+//!
 //! **io** — move bytes over an abstract source/sink:
 //! - [`io::read_all`] / [`io::read`] / [`io::write`] over [`io::Source`] /
 //!   [`io::Sink`] — affine handles consumed **exactly once** (LR-8 / RFC-0006 §Q5).
@@ -54,7 +62,8 @@
 //! (landed M-104). No new trusted serialization logic; no `unsafe`.
 //!
 //! # Guarantee matrix
-//! Eight rows — one per exported op — in [`guarantee_matrix::MATRIX`] (RFC-0016 §4.5).
+//! Guarantee rows — one per exported op — in [`guarantee_matrix::MATRIX`] (RFC-0016 §4.5).
+//! The original eight serialize/io ops remain; S-CODECS general codec ops are additional rows.
 //! Asserted in tests.
 //!
 //! # Design spec
@@ -112,6 +121,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod codec;
 pub mod error;
 pub mod guarantee_matrix;
 pub mod io;
@@ -126,10 +136,18 @@ mod unit_tests;
 // ── Flat re-exports for convenience ────────────────────────────────────────────
 
 // error types
-pub use error::{ByteCount, ByteOffset, FieldPath, IoError, ReadValueError, SerError};
+pub use error::{ByteCount, ByteOffset, FieldPath, IoError, ReadValueError, SerError, TomlError};
 
-// serialize surface
+// serialize surface (Value-specific)
 pub use serialize::{deserialize, from_json, serialize, to_json, Format};
+
+// general pure codecs (S-CODECS) — also available as `mycelium_std_io::codec::*`
+pub use codec::{
+    decode_json, decode_json_slice, decode_toml, encode_json, encode_json_bytes, encode_toml,
+    encode_toml_pretty, json_bytes_to_value, json_to_value, parse_toml, toml_get, toml_get_bool,
+    toml_get_i64, toml_get_optional, toml_get_str, value_to_json, value_to_json_bytes, Decode,
+    Encode, TomlValue,
+};
 
 // io surface
 pub use io::{read, read_all, read_value, write, Budget, Sink, Source, Substrate};
@@ -206,16 +224,84 @@ mod tests {
         assert_eq!(v, recovered);
     }
 
+    // ── S-CODECS general codec smoke ──────────────────────────────────────────
+
+    /// General JSON encode/decode for a user struct (not Value).
+    #[test]
+    fn general_json_codec_round_trip() {
+        #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+        struct Hook {
+            url: String,
+            enabled: bool,
+        }
+        let h = Hook {
+            url: "https://example.test/hook".to_owned(),
+            enabled: true,
+        };
+        let text = encode_json(&h).expect("encode_json");
+        let back: Hook = decode_json(&text).expect("decode_json");
+        assert_eq!(h, back);
+    }
+
+    /// TOML parse + get for a relay.toml-shaped fixture (never-silent missing key).
+    #[test]
+    fn toml_parse_and_get_relay_shaped() {
+        let doc = parse_toml(
+            r#"
+            [relay]
+            token = "t0"
+            poll_secs = 30
+            "#,
+        )
+        .expect("parse_toml");
+        assert_eq!(toml_get_str(&doc, "relay.token").expect("token"), "t0");
+        assert_eq!(toml_get_i64(&doc, "relay.poll_secs").expect("poll"), 30);
+        assert!(
+            toml_get(&doc, "relay.missing").is_err(),
+            "missing key must be Err (C1/G2), not silent default"
+        );
+    }
+
+    /// S-CODECS Value aliases match the serialize entry points.
+    #[test]
+    fn value_json_aliases_match_serialize() {
+        let v = binary_value();
+        let a = to_json(&v).expect("to_json");
+        let b = value_to_json(&v).expect("value_to_json");
+        assert_eq!(a, b);
+        let recovered = json_to_value(&b).expect("json_to_value");
+        assert_eq!(v, recovered);
+    }
+
     // ── Guarantee matrix is well-formed ───────────────────────────────────────
 
-    /// The guarantee matrix has exactly 8 rows (one per exported op; spec §4).
+    /// The guarantee matrix covers the original eight serialize/io ops plus the
+    /// S-CODECS general codec foundation (WP-5 L-IO).
     #[test]
-    fn guarantee_matrix_has_eight_rows() {
-        assert_eq!(
-            GUARANTEE_MATRIX.len(),
-            8,
-            "spec §4 guarantees eight op rows"
+    fn guarantee_matrix_covers_serialize_io_and_codecs() {
+        assert!(
+            GUARANTEE_MATRIX.len() >= 8,
+            "matrix must at least cover the original eight serialize/io ops"
         );
+        for op in [
+            "serialize",
+            "deserialize",
+            "to_json",
+            "from_json",
+            "read_all",
+            "read",
+            "write",
+            "read_value",
+            "encode_json",
+            "decode_json",
+            "parse_toml",
+            "toml_get",
+        ] {
+            assert!(
+                GUARANTEE_MATRIX.iter().any(|r| r.op == op),
+                "matrix missing op {op}"
+            );
+        }
     }
 
     // ── C1 — never-silent ─────────────────────────────────────────────────────

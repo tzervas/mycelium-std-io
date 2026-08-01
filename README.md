@@ -24,3 +24,10 @@ MSRV 1.96.1. Path deps on sibling components may still point at monorepo-relativ
 ```bash
 cargo test
 ```
+
+## Pure codecs (S-CODECS / WP-5)
+
+General JSON + TOML for user-defined types live in [`codec`](src/codec.rs)
+(`encode_json` / `decode_json` / `parse_toml` / `toml_get`). Effects: none.
+Value-specific JSON remains in `serialize` (`to_json` / `from_json`).
+

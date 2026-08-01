@@ -7,7 +7,7 @@ Full plan: `mycelium-lang` `docs/planning/PORT-READINESS-2026-07-22.md`.
 with the OS-backed substrate deliberately reserved for later. The two port targets need
 those reserved seams filled.
 
-## 1. Socket-backed `Substrate` (the reserved seam)
+## 1. Socket-backed `Substrate` (the reserved seam) — OPEN
 
 `src/io.rs` documents that the OS-backed substrate — "a file descriptor, a network
 **socket**" — is *not* here yet (the abstract `Bytes`-cursor `Source`/`Sink` is
@@ -23,13 +23,21 @@ Both ports need real socket I/O:
 (`mycelium-l1/docs/GAP-ffi-host-and-surface.md`) + the real-OS floor
 (`mycelium-std-sys/docs/GAP-host-effects.md`).
 
-## 2. General struct JSON codec
+## 2. General struct JSON + TOML codec — FOUNDATION LANDED (WP-5 L-IO)
 
-`src/serialize.rs` provides `Value`↔JSON (and a `Wire` binary format) for the internal
-`mycelium-core::Value` only — not arbitrary user types. Both ports parse/emit JSON of
-domain shapes (GitHub API responses / config; Telegram updates / hook payloads).
+**Status (2026-08-01):** pure foundation shipped in `src/codec.rs` (S-CODECS).
 
-**Ask:** a general JSON (de)serialization surface for user-defined types. This is pure
-computation — buildable in Mycelium with no host dependency — and is **Tier-1/2** in the
-plan (does not block on the FFI seam). Could live here or as a dedicated `std-json`
-phylum; TOML (relay config) is a sibling need.
+| Need | API | Notes |
+|---|---|---|
+| Value JSON (pre-existing) | `serialize::{to_json,from_json}` | `mycelium_core::Value` only |
+| S-CODECS Value aliases | `codec::{value_to_json,json_to_value}` | thin aliases of the above |
+| General user-type JSON | `codec::{encode_json,decode_json}` + `Encode`/`Decode` | any `serde` type; never-silent |
+| TOML config | `codec::{parse_toml,toml_get,decode_toml,encode_toml}` | `relay.toml`-shaped; missing key = `Err` |
+
+**Honesty residual:**
+- General JSON is `serde_json` over user types — not a second Value wire grammar.
+- TOML path helpers are a solid foundation (dotted path + typed get); not a full
+  schema-validated config crate. Domain validation stays with the caller.
+- Socket/OS substrate (section 1) remains open and is **out of scope** for pure codecs.
+
+**Non-goals retained:** no new `std-json` repo; no `wild`; no process/net here.

@@ -5,7 +5,9 @@
 //! result (C1/G2). Two distinct error families:
 //!
 //! - [`SerError`] — (de)serialization failures: truncated input, malformed grammar,
-//!   unknown tag, value-model invariant violation, budget exceeded.
+//!   unknown tag, value-model invariant violation, budget exceeded. Also used by the
+//!   general JSON codec ([`crate::codec`]) for user-defined types.
+//! - [`TomlError`] — TOML parse / path-lookup failures for config use (S-CODECS).
 //! - [`IoError`] — byte-movement failures: unexpected EOF, substrate refusal, effect
 //!   budget overrun.
 //!
@@ -241,6 +243,90 @@ impl From<SerError> for ReadValueError {
     }
 }
 
+// ── TomlError ────────────────────────────────────────────────────────────────
+
+/// Explicit error set for TOML parse and path lookup (S-CODECS; C1 never-silent).
+///
+/// Used by [`crate::codec::parse_toml`], [`crate::codec::toml_get`], and the typed
+/// TOML encode/decode helpers. Every variant names *where* / *why* the failure
+/// occurred — missing keys and type mismatches are errors, never silent defaults
+/// (G2 / RFC-0013 I1).
+///
+/// # C1 compliance
+/// No variant is a sentinel or partial-result indicator. The presence of a
+/// `TomlError` means the entire operation is rejected.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TomlError {
+    /// The input ended before a complete TOML document was parsed.
+    Truncated {
+        /// Human-readable description (line/column when available from the parser).
+        why: String,
+    },
+    /// The input is not valid TOML grammar.
+    Malformed {
+        /// Why the document was rejected (includes parser locus when available).
+        why: String,
+    },
+    /// A dotted path segment was not present on a table.
+    ///
+    /// `path` is the full lookup path requested; `missing` is the first segment
+    /// that was absent (so callers can distinguish "no `relay`" from "no
+    /// `relay.token`" without re-walking).
+    MissingKey {
+        /// Full dotted path that was requested (e.g. `"relay.token"`).
+        path: FieldPath,
+        /// The first missing segment (e.g. `"token"`).
+        missing: String,
+    },
+    /// A value was found at `path` but is not the expected TOML type.
+    TypeMismatch {
+        /// Structural path of the value.
+        path: FieldPath,
+        /// What the caller expected (e.g. `"string"`, `"integer"`, `"table"`).
+        expected: String,
+        /// What was actually present (e.g. `"boolean"`, `"array"`).
+        found: String,
+    },
+    /// A field decoded but violates a domain/invariant check (typed decode).
+    OutOfDomain {
+        /// Structural path to the violating field (best-effort).
+        path: FieldPath,
+        /// The violated invariant / serde message.
+        why: String,
+    },
+    /// Encode refused a value that has no faithful TOML representation.
+    Encode {
+        /// Why encoding failed.
+        why: String,
+    },
+}
+
+impl fmt::Display for TomlError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TomlError::Truncated { why } => write!(f, "truncated TOML input: {why}"),
+            TomlError::Malformed { why } => write!(f, "malformed TOML: {why}"),
+            TomlError::MissingKey { path, missing } => {
+                write!(f, "missing TOML key {missing:?} at {path}")
+            }
+            TomlError::TypeMismatch {
+                path,
+                expected,
+                found,
+            } => write!(
+                f,
+                "TOML type mismatch at {path}: expected {expected}, found {found}"
+            ),
+            TomlError::OutOfDomain { path, why } => {
+                write!(f, "TOML value out of domain at {path}: {why}")
+            }
+            TomlError::Encode { why } => write!(f, "TOML encode failed: {why}"),
+        }
+    }
+}
+
+mycelium_std_core::impl_std_error!(TomlError);
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -352,6 +438,45 @@ mod tests {
     #[test]
     fn io_error_is_std_error() {
         let e = IoError::Refused {
+            why: "test".to_owned(),
+        };
+        let _: &dyn std::error::Error = &e;
+    }
+
+    // ── TomlError Display / locus tests ───────────────────────────────────────
+
+    /// `TomlError::MissingKey` Display includes the path and missing segment.
+    #[test]
+    fn toml_error_missing_key_display_includes_path() {
+        let e = TomlError::MissingKey {
+            path: FieldPath::from_static("relay.token"),
+            missing: "token".to_owned(),
+        };
+        let s = e.to_string();
+        assert!(s.contains("token"), "must name the missing segment");
+        assert!(
+            s.contains("relay.token") || s.contains("relay"),
+            "must include the path"
+        );
+    }
+
+    /// `TomlError::TypeMismatch` Display includes expected and found types.
+    #[test]
+    fn toml_error_type_mismatch_display_includes_types() {
+        let e = TomlError::TypeMismatch {
+            path: FieldPath::from_static("port"),
+            expected: "integer".to_owned(),
+            found: "string".to_owned(),
+        };
+        let s = e.to_string();
+        assert!(s.contains("integer"), "must include expected");
+        assert!(s.contains("string"), "must include found");
+    }
+
+    /// `TomlError` implements `std::error::Error`.
+    #[test]
+    fn toml_error_is_std_error() {
+        let e = TomlError::Malformed {
             why: "test".to_owned(),
         };
         let _: &dyn std::error::Error = &e;
