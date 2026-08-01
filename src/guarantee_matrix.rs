@@ -100,7 +100,8 @@ pub struct MatrixRow {
 
 /// The `std.io` + `serialize` guarantee matrix.
 ///
-/// Eight rows — one per exported op (spec §4 guarantee matrix / RFC-0016 §4.5).
+/// One row per exported op (spec §4 guarantee matrix / RFC-0016 §4.5).
+/// Original eight serialize/io ops plus S-CODECS general codec ops (WP-5).
 /// Asserted in `tests` — never prose-only (C2 / VR-5).
 pub const MATRIX: &[MatrixRow] = &[
     // ── serialize: Value → bytes (total, Exact) ───────────────────────────────
@@ -179,6 +180,43 @@ pub const MATRIX: &[MatrixRow] = &[
         effects: "io",
         explainable: Explainable::Yes,
     },
+
+    // ── encode_json: general serde → JSON text (Exact when Ok, pure) ──────────
+    MatrixRow {
+        op: "encode_json",
+        guarantee: GuaranteeTag::Exact,
+        fallibility: Fallibility::Fallible,
+        error_set: "Err(OutOfDomain|Malformed) — non-JSON-representable values refused (never silent null)",
+        effects: "none",
+        explainable: Explainable::NotApplicable,
+    },
+    // ── decode_json: JSON text → general serde type (Empirical, pure) ─────────
+    MatrixRow {
+        op: "decode_json",
+        guarantee: GuaranteeTag::Empirical,
+        fallibility: Fallibility::Fallible,
+        error_set: "Err(Truncated|Malformed|UnknownTag|OutOfDomain) @locus",
+        effects: "none",
+        explainable: Explainable::Yes,
+    },
+    // ── parse_toml: text → TomlValue tree (Empirical, pure) ───────────────────
+    MatrixRow {
+        op: "parse_toml",
+        guarantee: GuaranteeTag::Empirical,
+        fallibility: Fallibility::Fallible,
+        error_set: "Err(Truncated|Malformed) — never partial document",
+        effects: "none",
+        explainable: Explainable::Yes,
+    },
+    // ── toml_get: dotted path lookup (Exact when Ok, pure) ────────────────────
+    MatrixRow {
+        op: "toml_get",
+        guarantee: GuaranteeTag::Exact,
+        fallibility: Fallibility::Fallible,
+        error_set: "Err(MissingKey|TypeMismatch) — never silent default for absent key",
+        effects: "none",
+        explainable: Explainable::Yes,
+    },
 ];
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -190,8 +228,9 @@ mod tests {
     /// Every op named in the spec §3 surface appears in the matrix exactly once.
     /// Guard: removing or renaming any op from MATRIX makes this fail.
     #[test]
-    fn matrix_contains_all_eight_exported_ops() {
+    fn matrix_contains_all_exported_ops() {
         let expected = [
+            // original serialize/io surface (spec §3)
             "serialize",
             "deserialize",
             "to_json",
@@ -200,11 +239,16 @@ mod tests {
             "read",
             "write",
             "read_value",
+            // S-CODECS general pure codecs (WP-5 L-IO)
+            "encode_json",
+            "decode_json",
+            "parse_toml",
+            "toml_get",
         ];
         for name in &expected {
             assert!(
                 MATRIX.iter().any(|r| r.op == *name),
-                "matrix is missing op {:?} (spec §3)",
+                "matrix is missing op {:?} (spec §3 / S-CODECS)",
                 name
             );
         }
@@ -220,8 +264,22 @@ mod tests {
     /// Guard: upgrading any `Empirical` to `Proven` makes this fail (VR-5).
     #[test]
     fn guarantee_tags_match_spec() {
-        let exact_ops = ["serialize", "to_json", "read_all", "read", "write"];
-        let empirical_ops = ["deserialize", "from_json", "read_value"];
+        let exact_ops = [
+            "serialize",
+            "to_json",
+            "read_all",
+            "read",
+            "write",
+            "encode_json",
+            "toml_get",
+        ];
+        let empirical_ops = [
+            "deserialize",
+            "from_json",
+            "read_value",
+            "decode_json",
+            "parse_toml",
+        ];
 
         for op in &exact_ops {
             let row = MATRIX
@@ -345,7 +403,16 @@ mod tests {
     /// Guard: adding an effect to serialize/deserialize/to_json/from_json makes this fail.
     #[test]
     fn serialize_ops_are_pure() {
-        let pure_ops = ["serialize", "deserialize", "to_json", "from_json"];
+        let pure_ops = [
+            "serialize",
+            "deserialize",
+            "to_json",
+            "from_json",
+            "encode_json",
+            "decode_json",
+            "parse_toml",
+            "toml_get",
+        ];
         for op in &pure_ops {
             let row = MATRIX
                 .iter()
@@ -373,7 +440,14 @@ mod tests {
     /// Guard: removing EXPLAIN from any decode op makes this fail.
     #[test]
     fn decode_ops_are_explainable() {
-        let explain_ops = ["deserialize", "from_json", "read_value"];
+        let explain_ops = [
+            "deserialize",
+            "from_json",
+            "read_value",
+            "decode_json",
+            "parse_toml",
+            "toml_get",
+        ];
         for op in &explain_ops {
             let row = MATRIX
                 .iter()
@@ -392,7 +466,7 @@ mod tests {
     /// selection/conversion/approximation).
     #[test]
     fn projection_ops_are_not_explainable() {
-        let na_ops = ["serialize", "to_json"];
+        let na_ops = ["serialize", "to_json", "encode_json"];
         for op in &na_ops {
             let row = MATRIX
                 .iter()
