@@ -13,7 +13,7 @@ workspace = true
 
 [dependencies]
 mycelium-core = { git = "https://github.com/tzervas/mycelium-core", rev = "57ef45b453eef1f02bdfb1f0cad1034dabd32b1f" }
-mycelium-std-core = { git = "https://github.com/tzervas/mycelium-std-core", rev = "f8db1265d973c86e422f1d49678e00b45b4f9a9b" }
+mycelium-std-core = { git = "https://github.com/tzervas/mycelium-std-core", rev = "19398dfd847eb9a5fc518149a714d7646abbb316" }
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
