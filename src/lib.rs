@@ -224,7 +224,6 @@ mod tests {
         assert_eq!(v, recovered);
     }
 
-
     // ── S-CODECS general codec smoke ──────────────────────────────────────────
 
     /// General JSON encode/decode for a user struct (not Value).

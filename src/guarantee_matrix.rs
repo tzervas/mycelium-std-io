@@ -180,13 +180,13 @@ pub const MATRIX: &[MatrixRow] = &[
         effects: "io",
         explainable: Explainable::Yes,
     },
-
     // ── encode_json: general serde → JSON text (Exact when Ok, pure) ──────────
     MatrixRow {
         op: "encode_json",
         guarantee: GuaranteeTag::Exact,
         fallibility: Fallibility::Fallible,
-        error_set: "Err(OutOfDomain|Malformed) — non-JSON-representable values refused (never silent null)",
+        error_set:
+            "Err(OutOfDomain|Malformed) — non-JSON-representable values refused (never silent null)",
         effects: "none",
         explainable: Explainable::NotApplicable,
     },

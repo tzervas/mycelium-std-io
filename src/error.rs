@@ -243,7 +243,6 @@ impl From<SerError> for ReadValueError {
     }
 }
 
-
 // ── TomlError ────────────────────────────────────────────────────────────────
 
 /// Explicit error set for TOML parse and path lookup (S-CODECS; C1 never-silent).
@@ -455,7 +454,10 @@ mod tests {
         };
         let s = e.to_string();
         assert!(s.contains("token"), "must name the missing segment");
-        assert!(s.contains("relay.token") || s.contains("relay"), "must include the path");
+        assert!(
+            s.contains("relay.token") || s.contains("relay"),
+            "must include the path"
+        );
     }
 
     /// `TomlError::TypeMismatch` Display includes expected and found types.
@@ -479,7 +481,6 @@ mod tests {
         };
         let _: &dyn std::error::Error = &e;
     }
-
 
     // ── ReadValueError tests ──────────────────────────────────────────────────
 

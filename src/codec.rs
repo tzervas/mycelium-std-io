@@ -86,7 +86,6 @@ pub fn json_bytes_to_value(bytes: &[u8]) -> Result<Value, SerError> {
 
 // ── General JSON (any serde type) ────────────────────────────────────────────
 
-
 // ── Never-silent finite-float precheck ───────────────────────────────────────
 //
 // `serde_json` silently encodes `f32`/`f64` NaN and ±∞ as JSON `null` by default
@@ -297,7 +296,10 @@ mod finite_check {
     impl SerializeSeq for Compound {
         type Ok = ();
         type Error = CheckError;
-        fn serialize_element<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<(), Self::Error> {
+        fn serialize_element<T: Serialize + ?Sized>(
+            &mut self,
+            value: &T,
+        ) -> Result<(), Self::Error> {
             value.serialize(FiniteChecker)
         }
         fn end(self) -> Result<(), Self::Error> {
@@ -308,7 +310,10 @@ mod finite_check {
     impl SerializeTuple for Compound {
         type Ok = ();
         type Error = CheckError;
-        fn serialize_element<T: Serialize + ?Sized>(&mut self, value: &T) -> Result<(), Self::Error> {
+        fn serialize_element<T: Serialize + ?Sized>(
+            &mut self,
+            value: &T,
+        ) -> Result<(), Self::Error> {
             value.serialize(FiniteChecker)
         }
         fn end(self) -> Result<(), Self::Error> {
@@ -382,7 +387,6 @@ mod finite_check {
         }
     }
 }
-
 
 /// Encode any [`Serialize`] value to compact UTF-8 JSON text.
 ///
@@ -640,18 +644,14 @@ pub fn decode_toml<T: DeserializeOwned>(text: &str) -> Result<T, TomlError> {
 ///
 /// # Effects: none
 pub fn encode_toml<T: Serialize + ?Sized>(value: &T) -> Result<String, TomlError> {
-    toml::to_string(value).map_err(|e| TomlError::Encode {
-        why: e.to_string(),
-    })
+    toml::to_string(value).map_err(|e| TomlError::Encode { why: e.to_string() })
 }
 
 /// Encode a typed value to a pretty (multi-line) TOML document.
 ///
 /// # Effects: none
 pub fn encode_toml_pretty<T: Serialize + ?Sized>(value: &T) -> Result<String, TomlError> {
-    toml::to_string_pretty(value).map_err(|e| TomlError::Encode {
-        why: e.to_string(),
-    })
+    toml::to_string_pretty(value).map_err(|e| TomlError::Encode { why: e.to_string() })
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
