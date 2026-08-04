@@ -126,6 +126,11 @@ pub mod error;
 pub mod guarantee_matrix;
 pub mod io;
 pub mod serialize;
+// S-STD-IO-TYPED-PRIMS (PKG-LINKAGE, mycelium-lang#44): checked `prim:` entry points over the
+// serialize codec above. `typed-prims`-feature-gated — a default build never links
+// mycelium-interp.
+#[cfg(feature = "typed-prims")]
+pub mod typed_prims;
 
 // In-crate white-box unit tests extracted from logic files (M-797 as-touched). Named
 // `unit_tests` to avoid colliding with this crate's own integration-level `mod tests` below.

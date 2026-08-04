@@ -3,6 +3,15 @@
 version = 4
 
 [[package]]
+name = "ar_archive_writer"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73cd58deff2140a0a8eae87e417bd01db68a33e148aa93d1e8cd837e55e312b6"
+dependencies = [
+ "object",
+]
+
+[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -186,16 +195,63 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 [[package]]
 name = "mycelium-core"
 version = "0.464.0"
-source = "git+https://github.com/tzervas/mycelium-core?rev=46d2515cbd86d2ae4d1365f4adcd2796737e9f0b#46d2515cbd86d2ae4d1365f4adcd2796737e9f0b"
+source = "git+https://github.com/tzervas/mycelium-core?rev=57ef45b453eef1f02bdfb1f0cad1034dabd32b1f#57ef45b453eef1f02bdfb1f0cad1034dabd32b1f"
 dependencies = [
  "blake3",
  "serde",
 ]
 
 [[package]]
+name = "mycelium-dense"
+version = "0.464.0"
+source = "git+https://github.com/tzervas/mycelium-value?rev=fd4c3b307918fe6d58251a0b24a81e9f384d65ba#fd4c3b307918fe6d58251a0b24a81e9f384d65ba"
+dependencies = [
+ "mycelium-core",
+]
+
+[[package]]
+name = "mycelium-interp"
+version = "0.464.0"
+source = "git+https://github.com/tzervas/mycelium-runtime?rev=f683712fe5b701ad8b062a4b04195fbcdc15143b#f683712fe5b701ad8b062a4b04195fbcdc15143b"
+dependencies = [
+ "blake3",
+ "mycelium-core",
+ "mycelium-dense",
+ "mycelium-numerics",
+ "mycelium-sched",
+ "mycelium-vsa",
+ "mycelium-workstack",
+]
+
+[[package]]
+name = "mycelium-numerics"
+version = "0.464.0"
+source = "git+https://github.com/tzervas/mycelium-value?rev=fd4c3b307918fe6d58251a0b24a81e9f384d65ba#fd4c3b307918fe6d58251a0b24a81e9f384d65ba"
+dependencies = [
+ "mycelium-core",
+ "serde",
+]
+
+[[package]]
+name = "mycelium-sched"
+version = "0.464.0"
+source = "git+https://github.com/tzervas/mycelium-runtime?rev=f683712fe5b701ad8b062a4b04195fbcdc15143b#f683712fe5b701ad8b062a4b04195fbcdc15143b"
+dependencies = [
+ "mycelium-core",
+]
+
+[[package]]
+name = "mycelium-stack"
+version = "0.464.0"
+source = "git+https://github.com/tzervas/mycelium-core?rev=57ef45b453eef1f02bdfb1f0cad1034dabd32b1f#57ef45b453eef1f02bdfb1f0cad1034dabd32b1f"
+dependencies = [
+ "stacker",
+]
+
+[[package]]
 name = "mycelium-std-core"
 version = "0.464.0"
-source = "git+https://github.com/tzervas/mycelium-std-core?rev=376762cc17853e1582684ececf9e760426bcfb0c#376762cc17853e1582684ececf9e760426bcfb0c"
+source = "git+https://github.com/tzervas/mycelium-std-core?rev=19398dfd847eb9a5fc518149a714d7646abbb316#19398dfd847eb9a5fc518149a714d7646abbb316"
 dependencies = [
  "mycelium-core",
 ]
@@ -205,11 +261,28 @@ name = "mycelium-std-io"
 version = "0.464.0"
 dependencies = [
  "mycelium-core",
+ "mycelium-interp",
  "mycelium-std-core",
  "proptest",
  "serde",
  "serde_json",
  "toml",
+]
+
+[[package]]
+name = "mycelium-vsa"
+version = "0.464.0"
+source = "git+https://github.com/tzervas/mycelium-value?rev=fd4c3b307918fe6d58251a0b24a81e9f384d65ba#fd4c3b307918fe6d58251a0b24a81e9f384d65ba"
+dependencies = [
+ "mycelium-core",
+]
+
+[[package]]
+name = "mycelium-workstack"
+version = "0.464.0"
+source = "git+https://github.com/tzervas/mycelium-core?rev=57ef45b453eef1f02bdfb1f0cad1034dabd32b1f#57ef45b453eef1f02bdfb1f0cad1034dabd32b1f"
+dependencies = [
+ "mycelium-stack",
 ]
 
 [[package]]
@@ -219,6 +292,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "object"
+version = "0.39.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e5a6c098c7a3b6547378093f5cc30bc54fd361ce711e05293a5cc589562739b"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -262,6 +344,16 @@ dependencies = [
  "rusty-fork",
  "tempfile",
  "unarray",
+]
+
+[[package]]
+name = "psm"
+version = "0.1.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4dcd034599e63b970727f70d79e02d62390a4a84f7c6b827c27c46d5ac3fa622"
+dependencies = [
+ "ar_archive_writer",
+ "cc",
 ]
 
 [[package]]
@@ -417,6 +509,19 @@ name = "shlex"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
+
+[[package]]
+name = "stacker"
+version = "0.1.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "640c8cdd92b6b12f5bcb1803ca3bbf5ab96e5e6b6b96b9ab77dabe9e880b3190"
+dependencies = [
+ "cc",
+ "cfg-if",
+ "libc",
+ "psm",
+ "windows-sys",
+]
 
 [[package]]
 name = "syn"
