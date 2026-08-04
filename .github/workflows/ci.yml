@@ -16,3 +16,8 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+      # S-STD-IO-TYPED-PRIMS (PKG-LINKAGE, mycelium-lang#44): the typed-prims feature is additive
+      # and off by default (the two steps above already prove zero-diff on the default build), but
+      # it must still be exercised in CI, not just locally — a green PR must mean this actually ran.
+      - run: cargo clippy --all-targets --features typed-prims -- -D warnings
+      - run: cargo test --features typed-prims

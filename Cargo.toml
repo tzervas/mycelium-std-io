@@ -14,9 +14,23 @@ workspace = true
 [dependencies]
 mycelium-core = { git = "https://github.com/tzervas/mycelium-core", rev = "57ef45b453eef1f02bdfb1f0cad1034dabd32b1f" }
 mycelium-std-core = { git = "https://github.com/tzervas/mycelium-std-core", rev = "19398dfd847eb9a5fc518149a714d7646abbb316" }
+# S-STD-IO-TYPED-PRIMS (PKG-LINKAGE, mycelium-lang#44): the checked `prim:` dispatch schema/
+# registry (PrimSig/TySpec/TypedPrimRegistry — mycelium-runtime src/typed.rs, landed via
+# mycelium-runtime#18 + the PrimSig.name/TySpec::Float correction #19). Optional — only pulled in
+# by the `typed-prims` feature below; mirrors the exact host-registry/net-host optional-dep
+# precedent already used by mycelium-std-net/mycelium-std-sys-host's Cargo.toml, and the same
+# `mycelium-interp` git dependency shape mycelium-l1's Cargo.toml already uses to reach this crate.
+mycelium-interp = { git = "https://github.com/tzervas/mycelium-runtime", rev = "f683712fe5b701ad8b062a4b04195fbcdc15143b", optional = true }
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
+
+[features]
+# S-STD-IO-TYPED-PRIMS: exposes `typed_prims::typed_prim_sigs()` / `typed_prims::install_typed_prims()`
+# registering to_json/from_json/serialize/deserialize as checked `prim:` entries. Off by default —
+# a default build never links mycelium-interp (or its transitive mycelium-value/mycelium-sched
+# closure), zero-diff for every existing consumer.
+typed-prims = ["dep:mycelium-interp"]
 
 [dev-dependencies]
 # property tests for the round-trip bound; MSRV 1.96.1-compatible (ADR-041)
