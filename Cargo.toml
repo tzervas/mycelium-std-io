@@ -20,7 +20,7 @@ mycelium-std-core = { git = "https://github.com/tzervas/mycelium-std-core", rev 
 # by the `typed-prims` feature below; mirrors the exact host-registry/net-host optional-dep
 # precedent already used by mycelium-std-net/mycelium-std-sys-host's Cargo.toml, and the same
 # `mycelium-interp` git dependency shape mycelium-l1's Cargo.toml already uses to reach this crate.
-mycelium-interp = { git = "https://github.com/tzervas/mycelium-runtime", rev = "f683712fe5b701ad8b062a4b04195fbcdc15143b", optional = true }
+mycelium-interp = { git = "https://github.com/tzervas/mycelium-runtime", rev = "ac883d2ca0f8da90dddd32ddd6385db58674e635", optional = true }
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
